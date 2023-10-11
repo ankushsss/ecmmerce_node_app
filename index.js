@@ -1,6 +1,7 @@
 const express = require("express")
 var bodyParser = require('body-parser')
 var mongoose = require("mongoose")
+const bcrypt = require('bcrypt');
 
 const port = 3000
 
@@ -23,6 +24,106 @@ const productModel = mongoose.model("product",{
   "productCategory":String,
   "description":String
 })
+
+
+const userModel = mongoose.model("user",{
+  "fullName":String,
+  "mobileNumber":String,
+  "gendar":String,
+  "email":String,
+  "username":String,
+  "password":String
+})
+
+
+app.post("/addUser",async(req,res)=>{
+  try{
+    let user = req.body
+    bcrypt.hash(req.body.password, 10, async function(err, hash) {
+      
+      console.log(hash)
+      let isSave = new userModel({
+        "fullName":req.body.fullName,
+        "mobileNumber":req.body.mobileNumber,
+        "gendar":req.body.gendar,
+        "email":req.body.email,
+        "username":req.body.username,
+        "password":hash
+      })
+      let isTrue = await isSave.save()
+      if(isTrue)
+      {
+       res.status(200).json({
+         mssg:"data added successfully",
+         status:200,
+         isTrue:isTrue
+       })
+      }
+  });
+  
+    
+  }
+  catch(err)
+  {
+    console.log(err)
+    res.status(500).json({
+      mssg:"something is wrong in same function ",
+        status:500,
+        isTrue:[]
+    })
+  }
+})
+
+app.post("/login",async(req,res)=>{
+  try{
+    let {email,password} = req.body  //destructure
+    
+    let user = await userModel.find({email:email})  //  req.body.email
+
+    console.log(user)
+     
+    if(user.length == 0)
+    {
+      res.status(400).json({
+        mssg:"user not found",
+          status:400,
+          user:user
+      })
+    }
+    else
+    {
+      bcrypt.compare(password, user[0].password, function(err, result) {
+        // result == true
+          if(result == true)
+          {
+            res.status(200).json({
+              mssg:"user loggedin success",
+                status:200,
+                user:user
+            })
+          }
+          else
+          {
+            res.status(400).json({
+              mssg:"user not found",
+                status:400,
+            })
+          }
+    });
+    }
+
+
+  }
+  catch(err)
+  {
+    res.status(500).json({
+      mssg:"something is wrong in same function ",
+        status:500,
+        isTrue:[]
+    })
+  }
+})
+
 
 
 app.post("/addProduct",async(req,res)=>{
@@ -77,6 +178,130 @@ app.get("/getProducts" , async(req,res)=>{
   }
 })
 
+app.get("/getUser" , async(req,res)=>{
+  try{
+     let users = await userModel.find({})
+    res.status(200).json({
+      mssg:"data fetched successfully from database",
+      status:200,
+      users:users
+    })
+  }
+  catch(err)
+  {
+    console.log(err)
+    res.status(500).json({
+      mssg:"something is wrong in same function ",
+        status:500,
+        users:[]
+       
+    })
+  }
+})
+
+app.delete("/productDelete/:id",async(req,res)=>{
+     try{
+         let {id} = req.params
+         let deleteUser = await productModel.findByIdAndDelete(id)
+         if(deleteProduct)
+         {
+          res.status(200).json({
+            status:200,
+            mssg:"delete successfully",
+            deleteProduct
+
+          })
+         }
+     }
+     catch(err)
+     {
+      console.log(err)
+      res.status(500).json({
+        status:500,
+        mssg:"delete successfully",
+        err
+
+      })
+     }
+})
+app.delete("/userDelete/:id",async(req,res)=>{
+  try{
+      let {id} = req.params
+      let deleteUser = await userModel.findByIdAndDelete(id)
+      if(deleteUser)
+      {
+       res.status(200).json({
+         status:200,
+         mssg:"delete successfully",
+         deleteUser
+
+       })
+      }
+  }
+  catch(err)
+  {
+   console.log(err)
+   res.status(500).json({
+     status:500,
+     mssg:"delete successfully",
+     err
+
+   })
+  }
+})
+
+app.put("/updateProduct/:id",async(req,res)=>{
+  try{
+      let {id} = req.params
+      let updateProduct = await productModel.findByIdAndUpdate(id,req.body)
+      if(updateProduct)
+      {
+       res.status(200).json({
+         status:200,
+         mssg:"product update successfully",
+         updateProduct
+
+       })
+      }
+  }
+  catch(err)
+  {
+   console.log(err)
+   res.status(500).json({
+     status:500,
+     mssg:"domething is wrong in current function",
+     err
+
+   })
+  }
+})
+
+app.put("/updateUser/:id",async(req,res)=>{
+  try{
+      let {id} = req.params
+      let userUpdate = await userModel.findByIdAndUpdate(id,req.body)
+      if(userUpdate)
+      {
+       res.status(200).json({
+         status:200,
+         mssg:"user update successfully",
+         userUpdate
+
+       })
+      }
+  }
+  catch(err)
+  {
+   console.log(err)
+   res.status(500).json({
+     status:500,
+     mssg:"domething is wrong in current function",
+     err
+
+   })
+  }
+})
+
 
 
 app.listen(port, (error)=>{
@@ -86,3 +311,5 @@ app.listen(port, (error)=>{
     }
      console.log(`surver is running on ${port}`)
 })
+
+//mvc architecture
