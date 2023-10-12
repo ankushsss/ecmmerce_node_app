@@ -2,6 +2,7 @@ const express = require("express")
 var bodyParser = require('body-parser')
 var mongoose = require("mongoose")
 const bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
 
 const port = 3000
 
@@ -35,8 +36,23 @@ const userModel = mongoose.model("user",{
   "password":String
 })
 
+const isLogin = async (req,res,next)=>{
+  jwt.verify(req.query.token, '21238811166762aa', function(err, decoded) {
+    console.log(decoded) // bar
+    if(decoded)
+    {
+      next()
+    }
+    else{
+      res.status(400).json({
+        mssg:"unauthorized token",
+        status:400
+      })
+    }
+  });
+} 
 
-app.post("/addUser",async(req,res)=>{
+app.post("/addUser",isLogin,async(req,res)=>{
   try{
     let user = req.body
     bcrypt.hash(req.body.password, 10, async function(err, hash) {
@@ -74,6 +90,7 @@ app.post("/addUser",async(req,res)=>{
   }
 })
 
+
 app.post("/login",async(req,res)=>{
   try{
     let {email,password} = req.body  //destructure
@@ -96,10 +113,12 @@ app.post("/login",async(req,res)=>{
         // result == true
           if(result == true)
           {
+            var token = jwt.sign({...user[0]}, '21238811166762aa');
             res.status(200).json({
               mssg:"user loggedin success",
                 status:200,
-                user:user
+                user:user,
+                token
             })
           }
           else
@@ -157,7 +176,9 @@ app.post("/addProduct",async(req,res)=>{
 
 })
 
-app.get("/getProducts" , async(req,res)=>{
+
+
+app.get("/getProducts" ,isLogin, async(req,res)=>{
   try{
      let products = await productModel.find({})
     res.status(200).json({
@@ -178,7 +199,7 @@ app.get("/getProducts" , async(req,res)=>{
   }
 })
 
-app.get("/getUser" , async(req,res)=>{
+app.get("/getUser" ,isLogin, async(req,res)=>{
   try{
      let users = await userModel.find({})
     res.status(200).json({
@@ -199,7 +220,7 @@ app.get("/getUser" , async(req,res)=>{
   }
 })
 
-app.delete("/productDelete/:id",async(req,res)=>{
+app.delete("/productDelete/:id",isLogin,async(req,res)=>{
      try{
          let {id} = req.params
          let deleteUser = await productModel.findByIdAndDelete(id)
@@ -224,7 +245,7 @@ app.delete("/productDelete/:id",async(req,res)=>{
       })
      }
 })
-app.delete("/userDelete/:id",async(req,res)=>{
+app.delete("/userDelete/:id",isLogin,async(req,res)=>{
   try{
       let {id} = req.params
       let deleteUser = await userModel.findByIdAndDelete(id)
@@ -250,7 +271,7 @@ app.delete("/userDelete/:id",async(req,res)=>{
   }
 })
 
-app.put("/updateProduct/:id",async(req,res)=>{
+app.put("/updateProduct/:id",isLogin,async(req,res)=>{
   try{
       let {id} = req.params
       let updateProduct = await productModel.findByIdAndUpdate(id,req.body)
@@ -276,7 +297,7 @@ app.put("/updateProduct/:id",async(req,res)=>{
   }
 })
 
-app.put("/updateUser/:id",async(req,res)=>{
+app.put("/updateUser/:id",isLogin,async(req,res)=>{
   try{
       let {id} = req.params
       let userUpdate = await userModel.findByIdAndUpdate(id,req.body)
